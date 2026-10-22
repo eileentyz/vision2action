@@ -4,7 +4,7 @@
 
 Developed for the **OpenCV AI Competition 2026, powered by AWS**.
 
-## Demo
+## 🎥 Demo
 
 ![Vision2Action Demo](docs/media/live_mission_opencv5.gif)
 
@@ -53,19 +53,49 @@ After a mission:
 
 This helps developers check whether their evaluation results are consistent across different computing environments.
 
-## How It Works?
+## 🏗️ How It Works?
 
 ![Vision2Action System Architecture](docs/figures/fig_live_end_to_end.png)
 
-**Robot perception and manipulation**
+Vision2Action consists of two main parts:
 
-Camera → OpenCV 5 + YOLO11 → Object Position → Robot Grasping
+- **Robotic Manipulation:** OpenCV 5 processes the robot's camera images to detect objects and estimate their positions. ROS 2 then uses this information to perform autonomous pick-and-place.
+- **Cloud Evaluation:** Recorded perception data is uploaded to AWS, where OpenCV 5 runs again to evaluate accuracy and generate reports.
 
-**Cloud evaluation**
+```mermaid
+flowchart TB
+    subgraph ROBOT["🤖 Robot Simulation (MuJoCo + ROS 2)"]
+        A["Robot Cameras"]
+        B["OpenCV 5 + YOLO11<br/>Object Segmentation"]
+        C["3D Position and Orientation<br/>Estimation"]
+        D["MoveIt 2<br/>Grasp Planning"]
+        E["Autonomous<br/>Pick-and-Place"]
+        N["Nav2<br/>Navigation"]
 
-Evaluation Data → Amazon S3 → AWS Lambda → Evaluation Report
+        A --> B
+        B --> C
+        C --> D
+        D --> E
+        N --> E
+    end
 
-The robot operates locally in MuJoCo simulation. AWS is used to evaluate the recorded perception data, not to control the robot.
+    subgraph CLOUD["☁️ AWS Cloud Evaluation"]
+        F["Amazon S3<br/>Evaluation Data"]
+        G["AWS Lambda<br/>OpenCV 5 Evaluation"]
+        H["Amazon S3<br/>Evaluation Report"]
+
+        F --> G
+        G --> H
+    end
+
+    E --> I["Export Recorded<br/>Evaluation Data"]
+    I --> F
+
+    style B fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    style G fill:#ffedd5,stroke:#ea580c,color:#9a3412
+    style E fill:#dcfce7,stroke:#16a34a,color:#166534
+    style H fill:#dcfce7,stroke:#16a34a,color:#166534
+```
 
 ### Technologies Used
 
@@ -77,7 +107,7 @@ The robot operates locally in MuJoCo simulation. AWS is used to evaluate the rec
 - **AWS S3, Lambda and ECR:** Cloud-based evaluation.
 - **Python and Docker:** Development and deployment.
 
-## Results
+## 📊 Results
 
 ### OpenCV 5 Performance
 
@@ -118,7 +148,7 @@ The same exported evaluation data was processed locally and on AWS.
 
 The results matched, showing that the evaluation could be reproduced in the cloud for the tested images.
 
-## Getting Started
+## 🚀 Getting Started
 
 The repository includes the **OpenCV 5 perception system, evaluation tools, model, sample data and AWS pipeline**.
 
@@ -179,7 +209,7 @@ This uses Docker to test the Lambda application without deploying anything to AW
 
 For the full AWS deployment instructions, see [AWS Setup Guide](aws/README.md).
 
-## Repository Structure
+## 📁 Repository Structure
 
 | Folder | Description |
 |---|---|
@@ -193,7 +223,7 @@ For the full AWS deployment instructions, see [AWS Setup Guide](aws/README.md).
 | `docs/` | Technical report, diagrams and demo videos |
 | `tests/` | Automated tests |
 
-## Documentation
+## 📚 Documentation
 
 For more details:
 
