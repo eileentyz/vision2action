@@ -4,7 +4,7 @@
 
 Developed for the **OpenCV AI Competition 2026, powered by AWS**.
 
-## 🎥 Demo
+## Demo
 
 ![Vision2Action Demo](docs/media/live_mission_opencv5.gif)
 
@@ -14,7 +14,7 @@ Vision2Action uses **OpenCV 5 to help a simulated robot detect, locate and pick 
 
 The goal is to explore how computer vision can support autonomous material handling and make robotic perception easier to test.
 
-## 💡 Why Vision2Action?
+## Why Vision2Action?
 
 In manufacturing environments, workers often need to pick up and move materials between different locations.
 
@@ -24,11 +24,11 @@ Even a small error in object detection or position estimation can cause a robot 
 
 Vision2Action brings together **computer vision, robotics and cloud computing** to explore this challenge.
 
-## ✨ What Can It Do?
+## What Can It Do?
 
 Vision2Action has two main parts.
 
-### 🤖 1. OpenCV 5-Powered Robotic Manipulation
+### 1. OpenCV 5-Powered Robotic Manipulation
 
 The simulated Galbot robot can:
 
@@ -40,7 +40,7 @@ The simulated Galbot robot can:
 
 OpenCV 5 processes the robot's camera images during the mission, so it is part of the live perception system.
 
-### ☁️ 2. AWS Cloud Evaluation
+### 2. AWS Cloud Evaluation
 
 Vision2Action also provides a way to evaluate the perception results.
 
@@ -53,7 +53,7 @@ After a mission:
 
 This helps developers check whether their evaluation results are consistent across different computing environments.
 
-## 🏗️ How It Works
+## How It Works?
 
 ![Vision2Action System Architecture](docs/figures/fig_live_end_to_end.png)
 
@@ -77,7 +77,7 @@ The robot operates locally in MuJoCo simulation. AWS is used to evaluate the rec
 - **AWS S3, Lambda and ECR:** Cloud-based evaluation.
 - **Python and Docker:** Development and deployment.
 
-## 📊 Results
+## Results
 
 ### OpenCV 5 Performance
 
@@ -118,7 +118,7 @@ The same exported evaluation data was processed locally and on AWS.
 
 The results matched, showing that the evaluation could be reproduced in the cloud for the tested images.
 
-## 🚀 Getting Started
+## Getting Started
 
 The repository includes the **OpenCV 5 perception system, evaluation tools, model, sample data and AWS pipeline**.
 
@@ -179,7 +179,21 @@ This uses Docker to test the Lambda application without deploying anything to AW
 
 For the full AWS deployment instructions, see [AWS Setup Guide](aws/README.md).
 
-## 📚 Documentation
+## Repository Structure
+
+| Folder | Description |
+|---|---|
+| `galbot_cv5/` | OpenCV 5 inference and evaluation code |
+| `integration/ros2/` | Connects OpenCV 5 with the ROS 2 robot |
+| `models/` | YOLO11 segmentation model |
+| `data/` | Validation images and labels |
+| `tools/` | Benchmark and evaluation scripts |
+| `aws/` | AWS Lambda application and deployment setup |
+| `results/` | Performance results and evaluation reports |
+| `docs/` | Technical report, diagrams and demo videos |
+| `tests/` | Automated tests |
+
+## Documentation
 
 For more details:
 
@@ -190,7 +204,7 @@ For more details:
 - [Evaluation Results](results/)
 - [Model Information](models/README.md)
 
-## ⚠️ Limitations
+## Limitations
 
 Vision2Action is currently tested in simulation.
 
@@ -200,7 +214,7 @@ The complete FYP robot workspace is not included in this repository. The OpenCV 
 
 The AWS evaluation pipeline is also deployed privately and is not currently a public service.
 
-## 🔮 Future Work
+## Future Work
 
 - Test the system on a physical robot.
 - Support more object types.
@@ -208,7 +222,7 @@ The AWS evaluation pipeline is also deployed privately and is not currently a pu
 - Test different lighting conditions and environments.
 - Expand the cloud evaluation with more datasets and test cases.
 
-## 📄 Licence and Acknowledgements
+## Licence and Acknowledgements
 
 This project is released under the [GNU AGPL v3.0](LICENSE).
 
