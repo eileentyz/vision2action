@@ -22,8 +22,12 @@ system (a Galbot One Golf humanoid in MuJoCo, built as a final-year project) and
    Lambda (S3 → Lambda → S3) in a private, Free Plan project. Accuracy on AWS is
    **identical to the local run**, with differences below 1e-12. Latency differs and is
    reported separately.
+4. **OpenCV 5 on the live robot.** With `yolo_backend:=opencv5`, every camera frame the
+   robot uses during a pick-and-place mission is segmented by OpenCV 5. All **5 of 5**
+   recorded live missions succeeded, with final placement errors of **3.3–6.1 mm**.
 
-The robot's own ROS 2 code (navigation, manipulation, mission and recovery) was not modified.
+The robot's navigation, manipulation, mission and recovery code was not modified. The only
+robot-side change is an opt-in detector backend; the default is still Ultralytics.
 
 ![Architecture](figures/fig_architecture.png)
 
@@ -41,9 +45,9 @@ Each mission is recorded (joints, base pose, block pose, mission events) to
 `recording.jsonl`. The recordings hold no images.
 
 The competition code lives in this repository. It reuses the FYP's
-`head_localisation.py` and `head_yaw.py` unchanged (copies in `fyp/`), and it never
-writes to the robot packages or their Python environment. The robot-side OpenCV 5
-backend is in `integration/ros2/`.
+`head_localisation.py` and `head_yaw.py` unchanged (copies in `fyp/`). The robot-side
+OpenCV 5 backend is in `integration/ros2/`: two new modules and a patch to four FYP files
+that adds the `yolo_backend` / `opencv5_socket` launch arguments (section 4).
 
 ## 2. Stage 1: the detector in OpenCV 5
 
@@ -125,7 +129,57 @@ With HSV masks, IoU is 0.984 and yaw error is 0.81 / 2.05 / 2.12°.
 - **HSV is a weak baseline.** It wasn't tuned to the simulator's lighting, and its yaw
   tail reaches 41°. That's why the robot moved to learned segmentation.
 
-## 4. Reproducible evaluation on AWS
+## 4. Stage 3: OpenCV 5 in the live robot mission
+
+**Why a separate process.** OpenCV 5 needs NumPy 2, while ROS 2 Jazzy's Python stack uses
+NumPy 1.26, so they cannot share an interpreter. The detector runs as its own process
+(`tools/opencv5_mask_server.py`, the same `galbot_cv5` runner as stage 1). The robot's
+perception node reaches it through `OpenCV5MaskProvider` (`integration/ros2/`) over a
+local Unix socket:
+- fixed `struct` headers (`opencv5_protocol.py`, one file shared by both sides and
+  checked by a test)
+- raw `rgb8` frames in; a bit-packed mask, score, forward and total time out
+- on a server error the provider rejects that frame and reconnects on the next one; it
+  **never falls back to Ultralytics**, so a mission run with `yolo_backend:=opencv5`
+  only ever used OpenCV 5 masks
+
+The rest of the pipeline is the robot's own: mask geometry, stereo triangulation,
+silhouette yaw fit, then the Nav2 / MoveIt 2 pick-and-place mission.
+
+**How a run is produced and checked.** `live/run_live_demo.sh` starts the server,
+launches the mission with `yolo_backend:=opencv5`, then exports and evaluates the
+recording (and, with `--cloud`, submits it to AWS). For every frame, the robot records
+which backend produced the mask; the report lists it per mission (`opencv5_dnn 5.0.0` for
+all five). With `--record`, the server also saves each frame with the mask it returned;
+the demo video and GIF are built from those frames next to a replay of the mission.
+
+![Live mission, local and AWS reports](figures/fig_live_end_to_end.png)
+
+**Results: 5 live missions** (block yaw +30°; pick pose = the first pose the pick used,
+against simulator truth at the same time; source `results/live/`):
+
+| Mission | Result | Frames (with block) | Median frame time | Pick XY error | Pick yaw error | Placement error |
+|---|---|---|---|---|---|---|
+| `171622` | success | 268 (268) | 34.1 ms | 1.60 mm | 0.26° | 4.6 mm |
+| `173928` | success | 154 (154) | 42.3 ms | 1.71 mm | 1.02° | 4.2 mm |
+| `180808` | success | 170 (162) | 46.1 ms | 2.28 mm | 1.51° | 6.1 mm |
+| `203233` | success | 242 (242) | 33.5 ms | 2.86 mm | 0.52° | 3.3 mm |
+| `203608` | success | 252 (252) | 35.0 ms | 2.55 mm | 0.01° | 3.6 mm |
+
+The frame time is measured by the robot-side provider. It includes the socket round trip
+and shares the laptop CPU with MuJoCo, Nav2 and MoveIt 2, so it is higher than the
+20.9 ms of the isolated benchmark.
+
+**Same mission, local and AWS.** For missions `173928` and `180808`, the head stereo views
+were re-rendered from the recording, sanitised and evaluated both locally and on AWS
+Lambda (stage 2 framework). The accuracy matched exactly:
+
+| Mission | dnn mask IoU (median) | Fitted XY error (median) | Yaw error (median) | Local / AWS |
+|---|---|---|---|---|
+| `173928` | 0.896 | 2.23 mm | 1.27° | identical |
+| `180808` | 0.907 | 1.64 mm | 1.76° | identical |
+
+## 5. Reproducible evaluation on AWS
 
 **Deployment:** one CloudFormation stack in a private AWS project (Sydney Region, Free Plan):
 - a private S3 bucket: encrypted, public access blocked, HTTPS only, objects expire after 30 days
@@ -157,7 +211,7 @@ later Amazon Linux release. The ECR scan went from 12 HIGH and
 
 ![Cloud evidence](figures/fig_cloud_run_evidence.png)
 
-## 5. Latency: local and AWS are different measurements
+## 6. Latency: local and AWS are different measurements
 
 Accuracy carries over exactly; latency does not. The rows below are not interchangeable.
 
@@ -170,6 +224,7 @@ Accuracy carries over exactly; latency does not. The rows below are not intercha
 | cv2.dnn segmentation in the evaluation | **AWS Lambda** | 3008 MB, 2 OpenCV threads | one stereo pair (2 images) | **242.4 (246.1) ms**; first sample after a cold start: 1425 ms |
 | triangulation + silhouette yaw fit | local | 8 threads | one stereo pair | 64.6 (66.7) ms |
 | triangulation + silhouette yaw fit | **AWS Lambda** | 2 threads | one stereo pair | 173.0 (174.1) ms |
+| OpenCV 5 in the live mission | local | shared with the simulator | one head frame, including the socket round trip | 33.5–46.1 ms (per-mission medians) |
 | whole 21-pair job | **AWS Lambda** | 3008 MB | download, evaluate, write reports | 19.7 s |
 
 ![Latency](figures/fig_latency_local_vs_lambda.png)
@@ -179,24 +234,25 @@ so it is about 5× slower for the DNN and about 2.7× slower for the geometry. T
 here for **reproducible, isolated, auditable evaluation**, not for real-time inference.
 Real-time numbers come from the local measurements.
 
-## 6. Security, cost and operations
+## 7. Security, cost and operations
 
 - **Scope:** no public endpoints (no function URL, no API), no IAM users and no access
   keys. Deployment used short-lived `aws login` credentials.
 - **Data:** only data the owner approved was uploaded: the synthetic bundle, the
-  sanitised 21-pair bundle and the sanitised ONNX model. Recordings stay local.
-- **Cost:** USD 0.00 month to date in Cost Explorer after both runs, and the project is
-  still on the Free Plan. Estimated running cost is about USD 0.03 per month (281 MB in
+  sanitised 21-pair bundle, the sanitised bundles of two live missions and the sanitised
+  ONNX model. Recordings and recorded camera frames stay local.
+- **Cost:** USD 0.00 month to date in Cost Explorer after the first two runs (not
+  re-checked after the live-mission jobs), and the project is still on the Free Plan. Estimated running cost is about USD 0.03 per month (281 MB in
   ECR), with Lambda use far inside the free allowance.
 - **Teardown:** documented in `aws/README.md`. The resources are being kept until judging ends.
 
-## 7. Limitations
+## 8. Limitations
 
 - **Simulation only.** All images are MuJoCo renders from the same generator as the
   training set. Nothing here measures real-camera accuracy, and the model is
   simulation-specific.
 - **Small stereo set.** There are 21 re-rendered pairs from 7 trials of one yaw sweep,
-  11 recorded missions and 12 synthetic pairs. The p95 and max values rest on a few
+  11 recorded missions, 5 live OpenCV 5 missions and 12 synthetic pairs. The p95 and max values rest on a few
   samples, and there are no confidence intervals.
 - **Re-rendered, not recorded, frames.** The robot logs store no images, so stage 2
   scores re-rendered views of the recorded states. Lighting and timing match only
@@ -205,8 +261,8 @@ Real-time numbers come from the local measurements.
   PyTorch from the inference path and is faster locally, but it is no more accurate.
 - **Model deployment.** The ONNX graph is static at 480×640. Other sizes are
   letterboxed, which matches Ultralytics' ONNX behaviour but not its `.pt` behaviour.
-  The robot itself still runs the Ultralytics adapter. Swapping in the OpenCV 5 runner
-  on the robot is possible, but it was not done or validated.
+- **Live missions cover one case.** All 5 live OpenCV 5 missions used the same block yaw
+  (+30°) and scene. The robot's default backend is still Ultralytics; OpenCV 5 is opt-in.
 - **Cloud latency.** It is not representative of on-robot latency, as above.
 - **The error alarm doesn't fire for failed jobs.** The handler catches job errors and
   writes `reports/<id>/error.json`, so Lambda counts the invocation as a success.
@@ -214,9 +270,10 @@ Real-time numbers come from the local measurements.
   the alarm fire would need a template change, which was deferred.
 - **Licence.** The weights derive from Ultralytics YOLO11 (AGPL-3.0).
 
-## 8. Reproduce
+## 9. Reproduce
 
-The full commands are in `README.md` (environments, benchmark, evaluation, tests)
-and `aws/README.md` (image, change set, jobs). The
+The full commands are in `README.md` (environments, benchmark, evaluation, tests),
+`aws/README.md` (image, change set, jobs) and `live/README.md` (live missions, which need
+the separate FYP workspace). The
 figures are regenerated by `tools/figure_overlays.py` (`.venv-cv5`) and
 `tools/figure_charts.py` (`.venv-export`).
