@@ -55,8 +55,6 @@ This helps developers check whether their evaluation results are consistent acro
 
 ## 🏗️ How It Works?
 
-![Vision2Action System Architecture](docs/figures/fig_live_end_to_end.png)
-
 Vision2Action consists of two main parts:
 
 - **Robotic Manipulation:** OpenCV 5 processes the robot's camera images to detect objects and estimate their positions. ROS 2 then uses this information to perform autonomous pick-and-place.
@@ -96,6 +94,8 @@ flowchart TB
     style E fill:#dcfce7,stroke:#16a34a,color:#166534
     style H fill:#dcfce7,stroke:#16a34a,color:#166534
 ```
+
+![Vision2Action System Architecture](docs/figures/fig_live_end_to_end.png)
 
 ### Technologies Used
 
