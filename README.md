@@ -61,32 +61,22 @@ Vision2Action consists of two main parts:
 - **Cloud Evaluation:** Recorded perception data is uploaded to AWS, where OpenCV 5 runs again to evaluate accuracy and generate reports.
 
 ```mermaid
+%%{init: {"theme": "base", "flowchart": {"nodeSpacing": 10, "rankSpacing": 15, "padding": 4, "diagramPadding": 4}, "themeVariables": {"fontSize": "11px"}}}%%
 flowchart TB
-    subgraph ROBOT["🤖 Robot Simulation (MuJoCo + ROS 2)"]
-        A["Robot Cameras"]
-        B["OpenCV 5 + YOLO11<br/>Object Segmentation"]
-        C["3D Position and Orientation<br/>Estimation"]
-        D["MoveIt 2<br/>Grasp Planning"]
-        E["Autonomous<br/>Pick-and-Place"]
-        N["Nav2<br/>Navigation"]
-
-        A --> B
-        B --> C
-        C --> D
-        D --> E
-        N --> E
+    subgraph ROBOT["🤖 Robot Simulation"]
+        A["Robot Camera"] --> B["OpenCV 5 + YOLO11"]
+        B --> C["3D Pose Estimation"]
+        C --> D["MoveIt 2"]
+        D --> E["Pick & Place"]
+        N["Nav2"] --> E
     end
 
-    subgraph CLOUD["☁️ AWS Cloud Evaluation"]
-        F["Amazon S3<br/>Evaluation Data"]
-        G["AWS Lambda<br/>OpenCV 5 Evaluation"]
-        H["Amazon S3<br/>Evaluation Report"]
-
-        F --> G
-        G --> H
+    subgraph CLOUD["☁️ AWS Evaluation"]
+        F["S3: Input Data"] --> G["Lambda: OpenCV 5"]
+        G --> H["S3: Report"]
     end
 
-    E --> I["Export Recorded<br/>Evaluation Data"]
+    E --> I["Export Data"]
     I --> F
 
     style B fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
