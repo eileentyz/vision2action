@@ -1,0 +1,75 @@
+diff --git a/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_mask.py b/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_mask.py
+index b2743a8..4bb30fc 100644
+--- a/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_mask.py
++++ b/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_mask.py
+@@ -39,4 +39,13 @@ def create_mask_provider(mode='hsv', **options):
+         return BasketMaskProvider(debug_callback=options.get('debug_callback'))
+     if mode == 'yolo':
++        backend = options.pop('backend', 'ultralytics')
++        socket_path = options.pop('opencv5_socket', '')
++        if backend == 'opencv5':
++            # Same model as ONNX in OpenCV 5 cv2.dnn, served by a separate process (NumPy 2).
++            from galbot_mobile_manipulation.opencv5_mask import OpenCV5MaskProvider
++            return OpenCV5MaskProvider(socket_path=socket_path, **{
++                k: v for k, v in options.items() if k not in ('model_path', 'device')})
++        if backend != 'ultralytics':
++            raise ValueError(f'Unsupported yolo_backend {backend!r}; choose ultralytics or opencv5')
+         from galbot_mobile_manipulation.yolo_mask import YoloMaskProvider
+         return YoloMaskProvider(**options)
+diff --git a/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_pointcloud_node.py b/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_pointcloud_node.py
+index 18c86e3..259b95f 100644
+--- a/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_pointcloud_node.py
++++ b/packages/galbot_mobile_manipulation/galbot_mobile_manipulation/object_pointcloud_node.py
+@@ -47,5 +47,6 @@ class ObjectPointCloudNode(Node):
+                         reference_pose_topic='/object_pose', detector_mode='hsv',
+                         model_path='yolo11n-seg.pt', target_class='bottle',
+-                        confidence_threshold=0.5, device='auto', publish_debug_image=True,
++                        confidence_threshold=0.5, device='auto', yolo_backend='ultralytics',
++                        opencv5_socket='', publish_debug_image=True,
+                         cloud_filter='planar_mad', cluster_voxel_size=0.008, reject_mask_border=False,
+                         handoff_mode=False, coarse_rgb_topic='/camera/head/left/color/image_raw',
+@@ -81,4 +82,5 @@ class ObjectPointCloudNode(Node):
+             o['detector_mode'], model_path=o['model_path'], target_class=o['target_class'],
+             confidence_threshold=o['confidence_threshold'], device=o['device'],
++            backend=o['yolo_backend'], opencv5_socket=o['opencv5_socket'],
+             debug_callback=self.publish_detector_debug if o['publish_debug_image'] else None,
+             confidence_callback=self.log_detector_confidence)
+diff --git a/packages/galbot_mobile_manipulation/launch/pick_place_mission.launch.py b/packages/galbot_mobile_manipulation/launch/pick_place_mission.launch.py
+index bb68ada..80edfac 100644
+--- a/packages/galbot_mobile_manipulation/launch/pick_place_mission.launch.py
++++ b/packages/galbot_mobile_manipulation/launch/pick_place_mission.launch.py
+@@ -63,4 +63,9 @@ def generate_launch_description():
+         DeclareLaunchArgument('model_path', default_value=str(share / 'models/cube_yolo11n_seg.pt')),
+         DeclareLaunchArgument('confidence_threshold', default_value='0.35'),
++        DeclareLaunchArgument('yolo_backend', default_value='ultralytics', choices=['ultralytics', 'opencv5'],
++                              description='opencv5: the same model in OpenCV 5 cv2.dnn, served by '
++                                          'competition/tools/opencv5_mask_server.py'),
++        DeclareLaunchArgument('opencv5_socket', default_value='',
++                              description='OpenCV 5 mask server socket (default $XDG_RUNTIME_DIR/galbot_cv5_mask.sock)'),
+         DeclareLaunchArgument('cube_width', default_value='0.03'),
+         DeclareLaunchArgument('wrist_refinement', default_value='false'),
+@@ -106,4 +111,6 @@ def generate_launch_description():
+                  'model_path': LaunchConfiguration('model_path'), 'target_class': 'cube',
+                  'confidence_threshold': ParameterValue(LaunchConfiguration('confidence_threshold'), value_type=float),
++                 'yolo_backend': LaunchConfiguration('yolo_backend', default='ultralytics'),
++                 'opencv5_socket': LaunchConfiguration('opencv5_socket', default=''),
+                  'target_frame': 'base_link', 'cloud_filter': 'cluster', 'reference_pose_topic': '',
+                  'head_yaw': ParameterValue(LaunchConfiguration('head_yaw'), value_type=bool),
+diff --git a/packages/galbot_mobile_manipulation/launch/pick_place_mission_yolo.launch.py b/packages/galbot_mobile_manipulation/launch/pick_place_mission_yolo.launch.py
+index c133e06..471fbf5 100644
+--- a/packages/galbot_mobile_manipulation/launch/pick_place_mission_yolo.launch.py
++++ b/packages/galbot_mobile_manipulation/launch/pick_place_mission_yolo.launch.py
+@@ -25,4 +25,6 @@ def generate_launch_description():
+         *[DeclareLaunchArgument(name, default_value=value) for name, value in forwarded.items()],
+         DeclareLaunchArgument('confidence_threshold', default_value='0.35'),
++        DeclareLaunchArgument('yolo_backend', default_value='ultralytics', choices=['ultralytics', 'opencv5']),
++        DeclareLaunchArgument('opencv5_socket', default_value=''),
+         # Default: block yaw from the head cameras, no wrist observation move. The wrist mode is
+         # head_yaw:=false wrist_refinement:=true (the two together are rejected by the mission).
+@@ -44,4 +46,6 @@ def generate_launch_description():
+                 'model_path': str(model),
+                 'confidence_threshold': LaunchConfiguration('confidence_threshold'),
++                'yolo_backend': LaunchConfiguration('yolo_backend'),
++                'opencv5_socket': LaunchConfiguration('opencv5_socket'),
+                 'cube_width': LaunchConfiguration('cube_width'),
+                 'wrist_refinement': LaunchConfiguration('wrist_refinement'),

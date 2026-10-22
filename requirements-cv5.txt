@@ -1,0 +1,4 @@
+# OpenCV 5 evaluation environment (NumPy 2; isolated from the ROS 2 / FYP environment).
+numpy==2.5.4
+opencv-python-headless==5.0.0.93
+pytest<9

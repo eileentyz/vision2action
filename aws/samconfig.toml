@@ -1,0 +1,15 @@
+# sam build && sam deploy --guided writes the account-specific values on first use.
+version = 0.1
+
+[default.global.parameters]
+stack_name = "galbot-cv5-eval"
+
+[default.build.parameters]
+template_file = "template.yaml"
+
+[default.deploy.parameters]
+region = "ap-southeast-2"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset = true
+resolve_image_repos = true
+fail_on_empty_changeset = false

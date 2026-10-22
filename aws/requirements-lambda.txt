@@ -1,0 +1,3 @@
+# Lambda image runtime (boto3 is provided by the AWS Lambda Python base image).
+numpy==2.5.4
+opencv-python-headless==5.0.0.93

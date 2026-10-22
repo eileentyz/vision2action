@@ -1,0 +1,17 @@
+{
+  "source_weights": "packages/galbot_mobile_manipulation/models/cube_yolo11n_seg.pt",
+  "source_sha256": "099b062a7f06bab9baf44917f38cb7bf6948eedf79599edcce4c1cc2122cf58a",
+  "onnx": "cube_yolo11n_seg.onnx",
+  "onnx_sha256": "72236da98ad910a225586c4c12f9e5130e7755d5120f22bcf93f2de8ea10b419",
+  "imgsz": [
+    480,
+    640
+  ],
+  "opset": 17,
+  "names": {
+    "0": "cube"
+  },
+  "ultralytics": "8.4.170",
+  "torch": "2.14.1+cpu",
+  "sanitised_from_sha256": "25af1a53f5970d1cc82cd8c46f2916f29ea89b0f476a7937a7183a80157413ac"
+}

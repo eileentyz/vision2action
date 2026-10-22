@@ -1,0 +1,5 @@
+# Validation split only (the training split is not included). Paths are relative to this file.
+path: .
+val: images/val
+names:
+  0: cube

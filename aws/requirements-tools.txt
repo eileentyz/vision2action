@@ -1,0 +1,2 @@
+cfn-lint==1.58.0  # offline CloudFormation/SAM template linting
+aws-sam-cli==1.169.0  # sam validate/build/deploy (telemetry off: SAM_CLI_TELEMETRY=0)

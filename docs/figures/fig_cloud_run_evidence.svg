@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="706.434922pt" height="304.286695pt" viewBox="0 0 706.434922 304.286695" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-22T14:45:12.449029</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 304.286695 
+L 706.434922 304.286695 
+L 706.434922 0 
+L 0 0 
+z
+" style="fill: #fcfcfb"/>
+  </g>
+  <g id="text_1">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #8a8984" x="7.2" y="14.468984" transform="rotate(-0 7.2 14.468984)"># Rendered from AWS CLI and CloudWatch Logs output, 2026-10-22. Account ID replaced with &lt;account-id&gt;.</text>
+  </g>
+  <g id="text_2">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #52514e" x="7.2" y="47.44963" transform="rotate(-0 7.2 47.44963)">$ aws cloudformation describe-stacks --stack-name galbot-cv5-eval --query Stacks[0].StackStatus</text>
+  </g>
+  <g id="text_3">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="63.939952" transform="rotate(-0 7.2 63.939952)">CREATE_COMPLETE    (8 resources: S3 bucket + policy, Lambda + S3 permission, IAM role, logs, alarm, budget)</text>
+  </g>
+  <g id="text_4">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #52514e" x="7.2" y="96.920597" transform="rotate(-0 7.2 96.920597)">$ aws s3 ls --recursive s3://galbot-cv5-eval-&lt;account-id&gt;-ap-southeast-2/reports/</text>
+  </g>
+  <g id="text_5">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="113.360451" transform="rotate(-0 7.2 113.360451)">2026-10-22 14:26:46      35991 reports/synthetic-smoke/report.json</text>
+  </g>
+  <g id="text_6">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="129.850774" transform="rotate(-0 7.2 129.850774)">2026-10-22 14:26:46        874 reports/synthetic-smoke/summary.md</text>
+  </g>
+  <g id="text_7">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="146.391565" transform="rotate(-0 7.2 146.391565)">2026-10-22 14:30:14      87778 reports/fyp-headless-sweep-dnn/report.json</text>
+  </g>
+  <g id="text_8">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="162.881888" transform="rotate(-0 7.2 162.881888)">2026-10-22 14:30:14       1001 reports/fyp-headless-sweep-dnn/summary.md</text>
+  </g>
+  <g id="text_9">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="179.37221" transform="rotate(-0 7.2 179.37221)">2026-10-22 14:28:48        164 reports/fyp-headless-sweep/error.json    # first attempt: model sidecar not uploaded</text>
+  </g>
+  <g id="text_10">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #52514e" x="7.2" y="212.352855" transform="rotate(-0 7.2 212.352855)"># CloudWatch Logs /aws/lambda/galbot-cv5-eval-evaluator</text>
+  </g>
+  <g id="text_11">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="228.843178" transform="rotate(-0 7.2 228.843178)">REPORT  synthetic-smoke         Duration: 8365.56 ms   Billed: 11622 ms  Memory: 3008 MB  Max used: 190 MB  Init: 3256 ms</text>
+  </g>
+  <g id="text_12">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #0b0b0b" x="7.2" y="245.333501" transform="rotate(-0 7.2 245.333501)">REPORT  fyp-headless-sweep-dnn  Duration: 19716.13 ms  Billed: 19717 ms  Memory: 3008 MB  Max used: 298 MB</text>
+  </g>
+  <g id="text_13">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #52514e" x="7.2" y="278.314146" transform="rotate(-0 7.2 278.314146)"># ECR image scan (opencv5-6af372c): CRITICAL 0  HIGH 0  MEDIUM 0  LOW 0  (1 informational)</text>
+  </g>
+  <g id="text_14">
+   <text style="font-size: 9.5px; font-family: 'DejaVu Sans Mono'; text-anchor: start; fill: #52514e" x="7.2" y="294.804468" transform="rotate(-0 7.2 294.804468)"># Cost Explorer, month to date: USD 0.00    Free Plan: ACTIVE</text>
+  </g>
+ </g>
+</svg>

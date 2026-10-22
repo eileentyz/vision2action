@@ -1,0 +1,185 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  OpenCV 5 perception evaluation (Galbot FYP, OpenCV AI Competition 2026).
+  S3 jobs/<id>/job.json triggers a container-image Lambda that evaluates stereo
+  bundles from inputs/ (optionally with an ONNX model from models/) and writes
+  reports/<id>/report.json + summary.md. Private bucket, no public access.
+
+Parameters:
+  BudgetEmail:
+    Type: String
+    Description: Address that receives AWS Budgets cost alerts.
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    Description: Monthly cost budget in USD (alerts at 50%, 80%, 100% actual and 100% forecast).
+  MemorySizeMb:
+    Type: Number
+    Default: 3008
+    AllowedValues: [1769, 3008, 4096]
+    Description: Lambda memory (CPU scales with memory; 1769 MB = 1 vCPU).
+  ReservedConcurrency:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    MaxValue: 5
+    Description: >
+      Concurrency cap for the function (0 = leave unset). New accounts often have a
+      total concurrency quota of 10, in which case any reservation fails; raise the
+      quota first or leave this at 0.
+  RetentionDays:
+    Type: Number
+    Default: 30
+    AllowedValues: [7, 14, 30, 60, 90]
+    Description: Days before inputs, jobs and reports expire from the bucket.
+
+Conditions:
+  CapConcurrency: !Not [!Equals [!Ref ReservedConcurrency, 0]]
+
+Resources:
+  EvaluationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # Explicit name so the function's policy and trigger can name it without a
+      # circular reference; lowercase, unique per account and region.
+      BucketName: !Sub 'galbot-cv5-eval-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-evaluation-objects
+            Status: Enabled
+            ExpirationInDays: !Ref RetentionDays
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  EvaluationBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref EvaluationBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:s3:::galbot-cv5-eval-${AWS::AccountId}-${AWS::Region}'
+              - !Sub 'arn:${AWS::Partition}:s3:::galbot-cv5-eval-${AWS::AccountId}-${AWS::Region}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+
+  EvaluatorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-evaluator'
+      RetentionInDays: 14
+
+  EvaluatorFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: EvaluatorLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-evaluator'
+      Description: OpenCV 5 stereo perception evaluation (cv2.dnn YOLO-seg, HSV, stereo + silhouette yaw fit)
+      PackageType: Image
+      Architectures: [x86_64]
+      MemorySize: !Ref MemorySizeMb
+      Timeout: 600
+      EphemeralStorage:
+        Size: 2048
+      ReservedConcurrentExecutions: !If [CapConcurrency, !Ref ReservedConcurrency, !Ref 'AWS::NoValue']
+      Environment:
+        Variables:
+          GALBOT_TMP: /tmp
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Sid: ReadInputs
+              Effect: Allow
+              Action: ['s3:GetObject']
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:s3:::galbot-cv5-eval-${AWS::AccountId}-${AWS::Region}/inputs/*'
+                - !Sub 'arn:${AWS::Partition}:s3:::galbot-cv5-eval-${AWS::AccountId}-${AWS::Region}/models/*'
+                - !Sub 'arn:${AWS::Partition}:s3:::galbot-cv5-eval-${AWS::AccountId}-${AWS::Region}/jobs/*'
+            - Sid: WriteReports
+              Effect: Allow
+              Action: ['s3:PutObject']
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:s3:::galbot-cv5-eval-${AWS::AccountId}-${AWS::Region}/reports/*'
+      Events:
+        JobSubmitted:
+          Type: S3
+          Properties:
+            Bucket: !Ref EvaluationBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: jobs/
+                  - Name: suffix
+                    Value: job.json
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ../build/lambda-context
+      DockerTag: opencv5
+
+  CostBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub '${AWS::StackName}-monthly'
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetUsd
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification: {NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 50, ThresholdType: PERCENTAGE}
+          Subscribers: [{SubscriptionType: EMAIL, Address: !Ref BudgetEmail}]
+        - Notification: {NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 80, ThresholdType: PERCENTAGE}
+          Subscribers: [{SubscriptionType: EMAIL, Address: !Ref BudgetEmail}]
+        - Notification: {NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE}
+          Subscribers: [{SubscriptionType: EMAIL, Address: !Ref BudgetEmail}]
+        - Notification: {NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE}
+          Subscribers: [{SubscriptionType: EMAIL, Address: !Ref BudgetEmail}]
+
+  EvaluatorErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Evaluator invocations failed (see reports/<id>/error.json and the log group).
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref EvaluatorFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  BucketName:
+    Description: Upload inputs/, models/ and then jobs/<id>/job.json here; read reports/<id>/.
+    Value: !Ref EvaluationBucket
+  FunctionName:
+    Value: !Ref EvaluatorFunction
+  LogGroup:
+    Value: !Ref EvaluatorLogGroup

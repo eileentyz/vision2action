@@ -1,0 +1,10 @@
+{
+  "job_id": "synthetic-smoke",
+  "bundles": [
+    "synthetic_stereo.npz"
+  ],
+  "mask_sources": [
+    "hsv",
+    "gt"
+  ]
+}

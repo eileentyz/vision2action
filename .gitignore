@@ -1,0 +1,17 @@
+# Python environments and caches
+.venv*/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Generated outputs (models/, data/ and results/ are committed on purpose)
+build/
+samples/**/*.npz
+.job.s3.json
+results/cloud/synthetic-demo-*/
+
+# Secrets and local cloud configuration: never commit
+.env
+.env.*
+.aws/
+*.pem
